@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enabling JoPACC's Data Strategy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent-color: #00529B;
+            --text-primary: #1A202C;
+            --text-secondary: #4A5568;
+            --bg-color: #F7FAFC;
+            --card-bg: #FFFFFF;
+            --border-color: #E2E8F0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #presentation-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 1200px;
+        }
+        
+        .slide {
+            position: absolute;
+            width: 100%;
+            max-width: 1200px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 4rem;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            visibility: hidden;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            visibility: visible;
+        }
+        
+        .slide-content {
+            width: 100%;
+        }
+
+        .accent-text { color: var(--accent-color); }
+        .subtle-text { color: var(--text-secondary); }
+        .font-black { font-weight: 900; }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(to bottom, var(--accent-color), #60A5FA);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -0.625rem;
+            top: 0.5rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            border: 3px solid var(--bg-color);
+        }
+
+        .icon-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .icon-circle {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 900;
+            color: white;
+            background: linear-gradient(135deg, var(--accent-color), #60A5FA);
+        }
+
+        /* Navigation Controls */
+        #controls-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+        
+        .control-btn:hover {
+            background-color: white;
+            color: var(--text-primary);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .control-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Progress Bar */
+        #progress-bar-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: var(--border-color);
+            z-index: 999;
+        }
+        
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), #60A5FA);
+            transition: width 0.5s ease-out;
+        }
+
+        /* Slide Number Indicator */
+        #slide-indicator {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            border-radius: 2rem;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #EBF8FF, #E0E7FF);
+            border-left: 4px solid var(--accent-color);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .quote-box {
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--accent-color);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            font-style: italic;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+
+        .bullet-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .bullet-list li {
+            padding-left: 2rem;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .bullet-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+            font-weight: 900;
+            font-size: 1.25rem;
+        }
+
+        /* Fullscreen mode fixes */
+        #presentation-container:fullscreen {
+            background-color: var(--bg-color);
+        }
+
+        #presentation-container:-webkit-full-screen {
+            background-color: var(--bg-color);
+        }
+
+        #presentation-container:-moz-full-screen {
+            background-color: var(--bg-color);
+        }
+
+        #presentation-container:-ms-fullscreen {
+            background-color: var(--bg-color);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="presentation-container">
+
+        <!-- Slide 1: Title -->
+        <div class="slide active" data-slide="1">
+            <div class="slide-content" style="text-align: center;">
+                <h2 class="text-2xl font-bold tracking-tight uppercase accent-text mb-4">JoPACC Data Strategy</h2>
+                <h1 class="text-6xl lg:text-7xl font-black my-6 leading-tight text-gray-900">Enabling Our<br/>Unified Vision</h1>
+                <p class="text-xl subtle-text mt-6 max-w-3xl mx-auto">A Strategic Plan for 2026 and Beyond</p>
+            </div>
+            <p class="absolute bottom-8 left-16 text-sm text-gray-500">Prepared by the Data Analytics and BI Team | November 10, 2025</p>
+        </div>
+
+        <!-- Slide 2: The Goal vs. The Roadblock -->
+        <div class="slide" data-slide="2">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-8 text-center">Our Ambitions vs. <span class="subtle-text">Our Roadblock</span></h3>
+                <div class="two-column">
+                    <div class="card">
+                        <div class="icon-circle" style="width: 60px; height: 60px; font-size: 1.5rem; margin-bottom: 1.5rem;">🎯</div>
+                        <h4 class="text-2xl font-bold accent-text mb-3">Our Strategic Vision</h4>
+                        <p class="text-base subtle-text mb-4">The future demands more than batch reporting:</p>
+                        <ul class="text-left text-sm space-y-2">
+                            <li class="flex items-start">
+                                <span class="accent-text mr-2 font-bold">•</span>
+                                <span><strong>Data Portal Launch:</strong> Public and Private portals to serve all stakeholders with near-real-time insights.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="accent-text mr-2 font-bold">•</span>
+                                <span><strong>Real-Time Analytics:</strong> Live monitoring, proactive fraud detection, and instant compliance dashboards.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="accent-text mr-2 font-bold">•</span>
+                                <span><strong>Enter the AI Race:</strong> Build AI-ready infrastructure to enable predictive analytics and machine learning capabilities.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="accent-text mr-2 font-bold">•</span>
+                                <span><strong>Future-Ready Platform:</strong> Seamlessly integrate any new data sources within our Data Analytics and BI scope.</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #FFF5F5, #FED7D7);">
+                        <div class="icon-circle" style="width: 60px; height: 60px; font-size: 1.5rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, #E53E3E, #FC8181);">🚧</div>
+                        <h4 class="text-2xl font-bold text-red-700 mb-3">Current DWH Limitations</h4>
+                        <p class="text-base text-gray-700 mb-4">Our existing infrastructure is a bottleneck:</p>
+                        <ul class="text-left text-sm space-y-2 text-gray-700">
+                            <li class="flex items-start">
+                                <span class="mr-2">❌</span>
+                                <span><strong>Rigid, batch-only processing:</strong> No live monitoring, real-time insights, or streaming capabilities.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">❌</span>
+                                <span><strong>Severe storage constraints:</strong> Prohibitive costs prevent adding new data sources or scaling up.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">❌</span>
+                                <span><strong>AI dead-end:</strong> Cannot support the massive storage and computational needs for AI/ML initiatives.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">❌</span>
+                                <span><strong>Limited flexibility:</strong> Unable to handle diverse data formats and evolving analytical requirements.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: The Proven Solution -->
+        <div class="slide" data-slide="3">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-6 text-center">The Benchmark: <span class="accent-text">Project Keystone</span></h3>
+                <div class="two-column">
+                    <div>
+                        <p class="text-lg subtle-text mb-6">We don't need to reinvent the wheel. Global benchmarks have already solved this problem.</p>
+                        <div class="highlight-box">
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">Project Keystone</h4>
+                            <p class="text-base text-gray-700 mb-3">The Bank of England and BIS collaboration proved that unlocking advanced analytics from payment data requires:</p>
+                            <ul class="text-sm space-y-2 text-gray-700">
+                                <li class="flex items-start">
+                                    <span class="accent-text mr-2">→</span>
+                                    <span>A move to <strong>cloud infrastructure</strong></span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="accent-text mr-2">→</span>
+                                    <span>Built on a scalable <strong>Data Lake</strong></span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="accent-text mr-2">→</span>
+                                    <span>Using modern <strong>Big Data technologies</strong></span>
+                                </li>
+                            </ul>
+                        </div>
+                        <p class="text-base text-gray-700 mt-4">This approach fundamentally solves our storage problem and enables unlimited scalability.</p>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <div class="card text-center" style="max-width: 400px;">
+                            <div style="font-size: 5rem; margin-bottom: 1rem;">☁️</div>
+                            <h4 class="text-2xl font-bold accent-text mb-3">Cloud + Data Lake</h4>
+                            <p class="text-base subtle-text">The foundation for modern, scalable data analytics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: The Data Lakehouse Model -->
+        <div class="slide" data-slide="4">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-6 text-center">The <span class="accent-text">Data Lakehouse</span> Model</h3>
+                <p class="text-lg subtle-text text-center mb-10 max-w-4xl mx-auto">The Medallion Architecture: A modern, layered approach that is the industry standard for data quality and governance.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl mx-auto">
+                    <div class="card icon-card">
+                        <div class="icon-circle" style="background: linear-gradient(135deg, #CD7F32, #C9A063);">
+                            <span style="font-size: 1.2rem;">🥉</span>
+                        </div>
+                        <h4 class="text-xl font-bold mb-3" style="color: #CD7F32;">Bronze Layer</h4>
+                        <p class="text-sm subtle-text">Ingests all <strong>raw data</strong> (including ISO 20022 XMLs) into the scalable, low-cost Data Lake. Solves our storage problem.</p>
+                    </div>
+                    <div class="card icon-card">
+                        <div class="icon-circle" style="background: linear-gradient(135deg, #C0C0C0, #A8A8A8);">
+                            <span style="font-size: 1.2rem;">🥈</span>
+                        </div>
+                        <h4 class="text-xl font-bold mb-3" style="color: #6B7280;">Silver Layer</h4>
+                        <p class="text-sm subtle-text"><strong>Cleans, validates, and standardizes</strong> data. Ensures data quality and consistency across all sources.</p>
+                    </div>
+                    <div class="card icon-card">
+                        <div class="icon-circle" style="background: linear-gradient(135deg, #FFD700, #FFA500);">
+                            <span style="font-size: 1.2rem;">🥇</span>
+                        </div>
+                        <h4 class="text-xl font-bold mb-3" style="color: #D97706;">Gold Layer</h4>
+                        <p class="text-sm subtle-text">Curates <strong>optimized, business-ready datasets</strong> to power portals, dashboards, and analytics.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Industry Validation -->
+        <div class="slide" data-slide="5">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-8 text-center">Not a Trend, <span class="accent-text">A Standard</span></h3>
+                <div class="max-w-4xl mx-auto">
+                    <div class="quote-box">
+                        <p class="text-xl text-gray-800 mb-4">"The Medallion Architecture is the <strong>definitive design pattern</strong> for the Data Lakehouse, officially recommended by major cloud providers like <strong>Microsoft</strong> for its Azure Fabric platform."</p>
+                        <p class="text-base subtle-text">— Microsoft Learn & Industry Standards</p>
+                    </div>
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card">
+                            <h4 class="text-lg font-bold accent-text mb-2">Financial Sector Adoption</h4>
+                            <p class="text-sm subtle-text">Major institutions like <strong>National Australia Bank (NAB)</strong> and various risk management firms use this architecture for:</p>
+                            <ul class="text-sm mt-3 space-y-1 text-gray-700">
+                                <li>• Real-time fraud detection</li>
+                                <li>• Compliance monitoring</li>
+                                <li>• Financial risk assessment</li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                            <h4 class="text-lg font-bold accent-text mb-2">Proven Results</h4>
+                            <p class="text-sm subtle-text">Organizations report:</p>
+                            <ul class="text-sm mt-3 space-y-1 text-gray-700">
+                                <li>• <strong>50-70%</strong> reduction in data processing times</li>
+                                <li>• Single source of truth for analytics and AI</li>
+                                <li>• Strict data governance and traceability</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: The Enabler - BKN301 -->
+        <div class="slide" data-slide="6">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-8 text-center">Our Strategic <span class="accent-text">Accelerator</span></h3>
+                <div class="two-column">
+                    <div>
+                        <div class="highlight-box" style="background: linear-gradient(135deg, #EBF8FF, #DBEAFE);">
+                            <h4 class="text-2xl font-bold accent-text mb-4">BKN301</h4>
+                            <p class="text-base text-gray-800 mb-4">Adopting a Medallion Architecture from scratch is complex. BKN301 accelerates our modernization:</p>
+                            <ul class="text-sm space-y-3 text-gray-700">
+                                <li class="flex items-start">
+                                    <span class="accent-text mr-2 font-bold">✓</span>
+                                    <span>Their <strong>"Data Decoupling Layer" (DDL)</strong> is a pre-built Medallion Architecture foundation</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="accent-text mr-2 font-bold">✓</span>
+                                    <span>Built on <strong>cloud-native Microsoft Azure</strong></span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="accent-text mr-2 font-bold">✓</span>
+                                    <span>Provides <strong>Bronze Layer</strong> (ingesting raw data) and <strong>Silver Layer</strong> (cleaning and standardizing)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="accent-text mr-2 font-bold">✓</span>
+                                    <span>Bypasses years of foundational development</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <div class="card text-center">
+                            <div style="font-size: 5rem; margin-bottom: 1rem;">⚡</div>
+                            <h4 class="text-xl font-bold text-gray-900 mb-4">Vendor-Agnostic Architecture</h4>
+                            <p class="text-sm subtle-text">While BKN301 is a strong enabler, the Medallion Architecture approach itself is vendor-agnostic. This gives us future flexibility and strategic optionality.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Unlocking ISO 20022 Strategy -->
+        <div class="slide" data-slide="7">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-8 text-center">The Strategic Prize: <span class="accent-text">ISO 20022</span></h3>
+                <div class="two-column">
+                    <div class="flex items-center justify-center">
+                        <div style="font-size: 12rem; opacity: 0.9;">📊</div>
+                    </div>
+                    <div>
+                        <p class="text-lg subtle-text mb-6">This new architecture is the <strong>only way</strong> we can unlock our ISO 20022 Data Strategy.</p>
+                        <div class="space-y-4">
+                            <div class="card">
+                                <h4 class="text-lg font-bold accent-text mb-2">Why Our Current System Can't Handle It</h4>
+                                <p class="text-sm text-gray-700">Our existing DWH cannot handle the <strong>raw, complex XML formats</strong> of ISO 20022. The new architecture is designed to accommodate evolving ISO 20022 standards.</p>
+                            </div>
+                            <div class="card">
+                                <h4 class="text-lg font-bold accent-text mb-2">How It Works</h4>
+                                <ul class="text-sm space-y-2 text-gray-700">
+                                    <li class="flex items-start">
+                                        <span class="mr-2" style="color: #CD7F32;">🥉</span>
+                                        <span><strong>Bronze Layer</strong> (BKN301) ingests all raw ISO 20022 XMLs</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="mr-2" style="color: #C0C0C0;">🥈</span>
+                                        <span><strong>Silver Layer</strong> (BKN301) validates and structures, parsing rich data fields (like purpose codes)</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="mr-2" style="color: #FFD700;">🥇</span>
+                                        <span><strong>Gold Layer</strong> (Our Team) curates analytics-ready datasets</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="highlight-box">
+                                <p class="text-base font-semibold text-gray-900">Unlocks: <span class="accent-text">Economic Trend Analysis</span> and other advanced use cases</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: New Capabilities - Real-Time Analytics & AI -->
+        <div class="slide" data-slide="8">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-8 text-center">From Batch to <span class="accent-text">Real-Time</span></h3>
+                <p class="text-lg subtle-text text-center mb-10 max-w-4xl mx-auto">This new engine moves us from batch processing to real-time or near-real-time analytics, unlocking capabilities previously impossible.</p>
+                <div class="two-column">
+                    <div class="card">
+                        <div class="icon-circle" style="width: 70px; height: 70px; font-size: 2rem;">📈</div>
+                        <h4 class="text-2xl font-bold accent-text mb-4">Real-Time Analytics</h4>
+                        <p class="text-base subtle-text mb-4">Enable live insights for improved decision-making:</p>
+                        <ul class="text-sm space-y-2 text-gray-700">
+                            <li class="flex items-start">
+                                <span class="accent-text mr-2">✓</span>
+                                <span><strong>Live Market Share</strong> & Performance Analytics</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="accent-text mr-2">✓</span>
+                                <span><strong>Real-Time Regulatory Compliance</strong> Dashboards</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="accent-text mr-2">✓</span>
+                                <span><strong>Proactive Fraud</strong> and Payment Monitoring</span>
+                            </li>
+                        </ul>
+                        <p class="text-sm text-gray-600 mt-4 italic">Only possible because the Data Lakehouse is designed for streaming and high-velocity data.</p>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #F0FDF4, #D1FAE5);">
+                        <div class="icon-circle" style="width: 70px; height: 70px; font-size: 2rem; background: linear-gradient(135deg, #059669, #10B981);">🤖</div>
+                        <h4 class="text-2xl font-bold text-green-700 mb-4">AI-Ready Foundation</h4>
+                        <p class="text-base text-gray-700 mb-4">Our current DWH is a dead end for artificial intelligence:</p>
+                        <ul class="text-sm space-y-2 text-gray-700">
+                            <li class="flex items-start">
+                                <span class="text-green-600 mr-2">✓</span>
+                                <span><strong>Massive, low-cost storage</strong> needed for AI models</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-600 mr-2">✓</span>
+                                <span><strong>Clean, real-time data</strong> foundation required for ML</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-600 mr-2">✓</span>
+                                <span><strong>Scalable platform</strong> for future innovation</span>
+                            </li>
+                        </ul>
+                        <p class="text-sm text-gray-600 mt-4 italic font-semibold">This platform makes our data "AI-ready."</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Upskilling Our Experts -->
+        <div class="slide" data-slide="9">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-8 text-center">The Human Value: <span class="accent-text">Upskilling Our Experts</span></h3>
+                <p class="text-lg subtle-text text-center mb-10 max-w-4xl mx-auto">This is not just a technology upgrade; it's a <strong>team upgrade</strong>. We invest in our people to own the future.</p>
+                <div class="two-column">
+                    <div class="card">
+                        <h4 class="text-2xl font-bold mb-4" style="color: #6B7280;">Current Skills</h4>
+                        <p class="text-base subtle-text mb-4">Our solid foundation:</p>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3 font-bold text-gray-600">SQL</div>
+                                <span class="text-base font-semibold text-gray-700">T-SQL</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3 font-bold text-gray-600">ETL</div>
+                                <span class="text-base font-semibold text-gray-700">SSIS</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-4 italic">These skills served our traditional DWH well.</p>
+                    </div>
+                    <div class="card" style="background: linear-gradient(135deg, #EBF8FF, #DBEAFE); border: 2px solid var(--accent-color);">
+                        <h4 class="text-2xl font-bold accent-text mb-4">Future Skills</h4>
+                        <p class="text-base text-gray-700 mb-4">Evolving our expertise:</p>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg accent-text flex items-center justify-center mr-3 font-bold text-white" style="background-color: var(--accent-color);">⚡</div>
+                                <span class="text-base font-semibold text-gray-800">PySpark</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg accent-text flex items-center justify-center mr-3 font-bold text-white" style="background-color: var(--accent-color);">☁️</div>
+                                <span class="text-base font-semibold text-gray-800">Azure Data Factory</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-700 mt-4 font-semibold">This empowers our team to own the <span class="accent-text">"Gold Layer"</span>—our most valuable data asset.</p>
+                    </div>
+                </div>
+                <div class="mt-8 max-w-3xl mx-auto">
+                    <div class="highlight-box text-center">
+                        <p class="text-base font-semibold text-gray-900">This plan creates a clear and exciting path for our team to master the skills the new ecosystem demands.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: The Unified Strategy - Timeline -->
+        <div class="slide" data-slide="10">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-10 text-center">Our Path <span class="accent-text">Forward</span></h3>
+                <div class="max-w-4xl mx-auto">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <h4 class="text-xl font-bold accent-text mb-2">Step 1: Launch Public Portal</h4>
+                            <p class="text-base subtle-text">Deploy the Public Portal ("The Megaphone") on cloud. Gain immediate hands-on experience with cloud infrastructure and data publishing. Low-risk, high-visibility first step.</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="text-xl font-bold accent-text mb-2">Step 2: Implement Data Lakehouse</h4>
+                            <p class="text-base subtle-text">Adopt the Medallion Architecture with BKN301 as our accelerator. Ingest ISO 20022 data through Bronze and Silver layers. Solve storage constraints and enable scalability.</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="text-xl font-bold accent-text mb-2">Step 3: Upskill Team</h4>
+                            <p class="text-base subtle-text">Train our experts in PySpark and Azure Data Factory. Empower the team to build and own the Gold Layer—the business-ready data products.</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h4 class="text-xl font-bold accent-text mb-2">Step 4: Launch Private Portal & AI Use Cases</h4>
+                            <p class="text-base subtle-text">Deploy the Private Portal ("The Mirror") with near-real-time insights and Row-Level Security. Enable advanced analytics and begin AI/ML initiatives.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Summary - Why This Plan Will Succeed -->
+        <div class="slide" data-slide="11">
+            <div class="slide-content">
+                <h3 class="text-4xl md:text-5xl font-black mb-10 text-center">Why This Plan <span class="accent-text">Will Succeed</span></h3>
+                <div class="max-w-4xl mx-auto">
+                    <ul class="bullet-list text-lg space-y-4">
+                        <li>
+                            <strong>Phased Approach:</strong> Starts with a clear, low-risk win (Public Portal on cloud) that builds team experience and confidence.
+                        </li>
+                        <li>
+                            <strong>Proven Architecture:</strong> Based on the industry-standard Medallion model, validated by major financial institutions and recommended by cloud providers.
+                        </li>
+                        <li>
+                            <strong>Partner-Accelerated:</strong> Leverages BKN301's pre-built foundation to bypass years of development while maintaining strategic flexibility.
+                        </li>
+                        <li>
+                            <strong>Future-Proof Platform:</strong> Creates a scalable, "AI-ready" foundation that can grow with our needs and accommodate any new data sources or use cases.
+                        </li>
+                        <li>
+                            <strong>Invests in People:</strong> Builds invaluable internal expertise through upskilling, ensuring our team can own and evolve the platform long-term.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Q&A -->
+        <div class="slide" data-slide="12">
+            <div class="slide-content" style="text-align: center;">
+                <div style="font-size: 6rem; margin-bottom: 2rem;">💬</div>
+                <h3 class="text-6xl font-black mb-6 text-gray-900">Questions?</h3>
+                <p class="text-2xl subtle-text">Let's discuss how we can move forward together.</p>
+            </div>
+            <p class="absolute bottom-8 text-sm text-gray-500">Prepared by the Data Analytics and BI Team | November 10, 2025</p>
+        </div>
+
+    </div>
+
+    <!-- Slide Number Indicator -->
+    <div id="slide-indicator">
+        <span id="current-slide">1</span> / <span id="total-slides">12</span>
+    </div>
+
+    <!-- UI Controls -->
+    <div id="controls-container">
+        <button id="fullscreen-btn" class="control-btn" title="Fullscreen">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+        </button>
+        <button id="restart-btn" class="control-btn" title="Restart">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        </button>
+        <button id="prev-btn" class="control-btn" title="Previous">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button id="next-btn" class="control-btn" title="Next">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+    </div>
+
+    <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const slides = Array.from(document.querySelectorAll('.slide'));
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const presentationContainer = document.getElementById('presentation-container');
+            const progressBar = document.getElementById('progress-bar');
+            const currentSlideDisplay = document.getElementById('current-slide');
+            const totalSlidesDisplay = document.getElementById('total-slides');
+            const totalSlides = slides.length;
+            let currentSlide = 0;
+
+            totalSlidesDisplay.textContent = totalSlides;
+
+            function updateSlide(index) {
+                slides.forEach((slide, i) => {
+                    slide.classList.toggle('active', i === index);
+                });
+                currentSlide = index;
+                updateControls();
+                updateProgressBar();
+                updateSlideIndicator();
+            }
+
+            function updateControls() {
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+            }
+            
+            function updateProgressBar() {
+                const progress = ((currentSlide + 1) / totalSlides) * 100;
+                progressBar.style.width = progress + '%';
+            }
+
+            function updateSlideIndicator() {
+                currentSlideDisplay.textContent = currentSlide + 1;
+            }
+
+            function nextSlide() {
+                if (currentSlide < totalSlides - 1) {
+                    updateSlide(currentSlide + 1);
+                }
+            }
+
+            function prevSlide() {
+                if (currentSlide > 0) {
+                    updateSlide(currentSlide - 1);
+                }
+            }
+            
+            function restartPresentation() {
+                updateSlide(0);
+            }
+
+            function toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    presentationContainer.requestFullscreen().catch(err => {
+                        console.log('Error attempting to enable fullscreen:', err);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+            
+            nextBtn.addEventListener('click', nextSlide);
+            prevBtn.addEventListener('click', prevSlide);
+            restartBtn.addEventListener('click', restartPresentation);
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+            document.addEventListener('keydown', e => {
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    e.preventDefault();
+                    nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevSlide();
+                } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    restartPresentation();
+                }
+            });
+
+            // Initialize
+            updateSlide(0);
+        });
+    </script>
+</body>
+</html>
